@@ -41,6 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 # scraper data
-/scraper/data/*.json
-/scraper/data/*.csv
+/scraper/data/
 /scraper/node_modules
+
+# claude code
+.claude/

@@ -1,5 +1,5 @@
 {
-  "name": "scrapper-meli-scraper",
+  "name": "scraper-meli-scraper",
   "version": "1.0.0",
   "description": "Mercado Libre scraper",
   "main": "src/index.js",
@@ -9,6 +9,11 @@
   },
   "dependencies": {
     "axios": "^1.7.0",
-    "cheerio": "^1.0.0"
+    "cheerio": "^1.0.0",
+    "dotenv": "^17.4.1",
+    "puppeteer": "^24.40.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "xlsx": "^0.18.5"
   }
 }
