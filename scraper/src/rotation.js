@@ -132,6 +132,7 @@ const ACCEPT_LANGUAGE = {
   'es-CO': ['es-CO,es;q=0.9,en;q=0.8', 'es-CO,es-419;q=0.9,es;q=0.8'],
   'es-CL': ['es-CL,es;q=0.9,en;q=0.8', 'es-CL,es-419;q=0.9,es;q=0.8'],
   'es-UY': ['es-UY,es;q=0.9,en;q=0.8', 'es-UY,es-419;q=0.9,es;q=0.8'],
+  'en-US': ['en-US,en;q=0.9', 'en-US,en;q=0.9,es;q=0.8'],
 };
 
 function pickAcceptLanguage(locale) {
