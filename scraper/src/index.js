@@ -53,7 +53,7 @@ if (!searchTerm) {
     } else if (format === 'json') {
       filepath = saveResults(searchTerm, countryCode, products);
     } else {
-      filepath = saveResultsXlsx(searchTerm, countryCode, products);
+      filepath = await saveResultsXlsx(searchTerm, countryCode, products);
     }
     console.log(`\n💾 Guardado en: ${filepath}`);
 

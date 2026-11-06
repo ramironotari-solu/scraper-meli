@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 /**
  * Runs async tasks with a concurrency limit.
@@ -82,23 +82,26 @@ function saveResultsCsv(searchTerm, country, products) {
   return filepath;
 }
 
-function saveResultsXlsx(searchTerm, country, products) {
+async function saveResultsXlsx(searchTerm, country, products) {
   const dataDir = ensureDataDir();
   const filepath = path.join(dataDir, `${buildSlug(searchTerm, country)}.xlsx`);
 
-  const sheetData = [
-    COLUMNS.map((c) => c.header),
-    ...products.map((p) => COLUMNS.map(({ key }) => p[key] ?? '')),
-  ];
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Resultados');
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+  worksheet.columns = COLUMNS.map(({ header }) => ({
+    header,
+    key: header,
+    width: Math.max(header.length + 2, 18),
+  }));
 
-  // Auto column widths (rough estimate)
-  ws['!cols'] = COLUMNS.map(({ header }) => ({ wch: Math.max(header.length + 2, 18) }));
+  products.forEach((p) => {
+    const row = {};
+    COLUMNS.forEach(({ key, header }) => { row[header] = p[key] ?? ''; });
+    worksheet.addRow(row);
+  });
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Resultados');
-  XLSX.writeFile(wb, filepath);
+  await workbook.xlsx.writeFile(filepath);
   return filepath;
 }
 
