@@ -29,8 +29,9 @@ interface Props {
 export default function MarketSummary({
   countryName, marketplaceName, marketplace, stats, summary, loadingSummary,
 }: Props) {
-  const freeShippingPct = Math.round((stats.freeShippingCount / stats.total) * 100);
-  const discountPct = Math.round((stats.discountCount / stats.total) * 100);
+  const pct = (n: number) => (stats.total ? Math.round((n / stats.total) * 100) : 0);
+  const freeShippingPct = pct(stats.freeShippingCount);
+  const discountPct = pct(stats.discountCount);
   const fullLabel = marketplace === 'walmart' ? '2-Day' : 'FULL';
 
   return (

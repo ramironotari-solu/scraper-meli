@@ -7,6 +7,12 @@ const COUNTRY_NAMES: Record<string, string> = {
   US: 'United States',
 };
 
+const MARKETPLACE_NAMES: Record<string, string> = {
+  meli: 'Mercado Libre',
+  walmart: 'Walmart',
+  tiendamia: 'Tiendamia',
+};
+
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return Response.json({ summary: null });
@@ -20,8 +26,12 @@ export async function POST(request: Request) {
   }
 
   const { query, country, stats, marketplace = 'meli' } = body;
+  // Nothing to analyze (and the percentages below would divide by zero)
+  if (!stats?.total) {
+    return Response.json({ summary: null });
+  }
   const countryName = COUNTRY_NAMES[country] ?? country;
-  const marketplaceName = marketplace === 'walmart' ? 'Walmart' : 'Mercado Libre';
+  const marketplaceName = MARKETPLACE_NAMES[marketplace] ?? marketplace;
   const freeShippingPct = Math.round((stats.freeShippingCount / stats.total) * 100);
   const discountPct = Math.round((stats.discountCount / stats.total) * 100);
 
