@@ -3,4 +3,11 @@ scraper/node_modules
 scraper/data
 .next
 .git
+.claude
 *.md
+
+# Secrets must never be baked into the image: pass them at runtime
+# (docker run -e / --env-file, or the hosting platform's secret store).
+.env*
+**/.env*
+scraper/proxies.txt
