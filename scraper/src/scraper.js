@@ -150,7 +150,7 @@ async function attempt(url, locale, attemptNum) {
     console.log(`   [intento ${attemptNum}] sin proxy | UA: ${profile.userAgent.slice(0, 40)}...`);
   }
 
-  const browser = await puppeteer.launch({ headless: true, args: launchArgs });
+  const browser = await puppeteer.launch({ headless: 'new', args: [...launchArgs, '--disable-blink-features=AutomationControlled'] });
 
   try {
     const page = await browser.newPage();
@@ -167,10 +167,11 @@ async function attempt(url, locale, attemptNum) {
     await page.setUserAgent(profile.userAgent);
     await page.setExtraHTTPHeaders({ 'Accept-Language': lang });
 
-    // Small random delay to look more human (500–1500 ms)
-    await sleep(500 + Math.random() * 1000);
-
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 40000 });
+    // Visit homepage first, then navigate to search — avoids direct-URL bot signal
+    const homeUrl = url.replace(/\/[^/]+$/, '').replace(/listado\./, 'www.');
+    await page.goto(homeUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await sleep(1000 + Math.random() * 1500);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
 
     // Detect bot-block / verification page (check title AND body)
     const pageTitle   = await page.title();
