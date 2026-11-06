@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — only the .env.example templates are versioned
 .env*
+!.env.example
+
+# proxy list (may contain credentials)
+/scraper/proxies.txt
 
 # vercel
 .vercel
