@@ -25,4 +25,5 @@ export type Product = {
   hasFreeShipping: boolean;
   isAd: boolean;
   thumbnail: string | null;
+  shippingText?: string | null;
 };

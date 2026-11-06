@@ -19,34 +19,35 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 interface Props {
   query: string;
   countryName: string;
+  marketplaceName: string;
+  marketplace: string;
   stats: MarketStats;
   summary: string | null;
   loadingSummary: boolean;
 }
 
-export default function MarketSummary({ countryName, stats, summary, loadingSummary }: Props) {
+export default function MarketSummary({
+  countryName, marketplaceName, marketplace, stats, summary, loadingSummary,
+}: Props) {
   const freeShippingPct = Math.round((stats.freeShippingCount / stats.total) * 100);
   const discountPct = Math.round((stats.discountCount / stats.total) * 100);
+  const fullLabel = marketplace === 'walmart' ? '2-Day' : 'FULL';
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 p-5 mb-4">
       <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-600 uppercase tracking-widest mb-4">
-        Resumen de mercado · {countryName} · {stats.total} productos
+        Resumen de mercado · {marketplaceName} · {countryName} · {stats.total} productos
       </p>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 mb-4">
         <StatCard
-          label="Precio promedio"
-          value={stats.avgPrice != null ? `$${formatPrice(stats.avgPrice)}` : '—'}
+          label="Precio mínimo"
+          value={stats.minPrice != null ? `$${formatPrice(stats.minPrice)}` : '—'}
         />
         <StatCard
-          label="Rango"
-          value={
-            stats.minPrice != null && stats.maxPrice != null
-              ? `$${formatPrice(stats.minPrice)} – $${formatPrice(stats.maxPrice)}`
-              : '—'
-          }
+          label="Precio máximo"
+          value={stats.maxPrice != null ? `$${formatPrice(stats.maxPrice)}` : '—'}
         />
         <StatCard
           label="Con descuento"
@@ -56,7 +57,7 @@ export default function MarketSummary({ countryName, stats, summary, loadingSumm
         <StatCard
           label="Envío gratis"
           value={`${stats.freeShippingCount} (${freeShippingPct}%)`}
-          sub={stats.fullCount > 0 ? `${stats.fullCount} con FULL` : undefined}
+          sub={stats.fullCount > 0 ? `${stats.fullCount} con ${fullLabel}` : undefined}
         />
       </div>
 

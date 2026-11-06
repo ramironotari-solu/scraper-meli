@@ -4,7 +4,7 @@ function formatPrice(price: number): string {
   return price.toLocaleString('es-AR');
 }
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product, marketplace }: { product: Product; marketplace?: string }) {
   const {
     title, url, price, originalPrice, discountPct,
     rating, seller, hasFull, hasFreeShipping, isAd, thumbnail,
@@ -70,15 +70,29 @@ export default function ProductCard({ product }: { product: Product }) {
               {rating.toFixed(1)}
             </span>
           )}
-          {hasFull && (
-            <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex-shrink-0">
-              FULL
-            </span>
-          )}
-          {hasFreeShipping && !hasFull && (
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-600 flex-shrink-0">
-              Envío gratis
-            </span>
+          {marketplace === 'walmart' ? (
+            product.shippingText && (
+              <span className={`text-[10px] flex-shrink-0 ${
+                hasFull
+                  ? 'font-medium text-emerald-600 dark:text-emerald-400'
+                  : 'text-zinc-400 dark:text-zinc-600'
+              }`}>
+                {product.shippingText}
+              </span>
+            )
+          ) : (
+            <>
+              {hasFull && (
+                <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex-shrink-0">
+                  FULL
+                </span>
+              )}
+              {hasFreeShipping && !hasFull && (
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-600 flex-shrink-0">
+                  Envío gratis
+                </span>
+              )}
+            </>
           )}
           {isAd && (
             <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 flex-shrink-0">

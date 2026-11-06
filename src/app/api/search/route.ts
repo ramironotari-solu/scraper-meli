@@ -4,34 +4,54 @@ import type { Product, MarketStats } from '@/lib/types';
 
 export const maxDuration = 120;
 
-const VALID_COUNTRIES = new Set(['AR', 'MX', 'BR', 'CO', 'CL', 'UY']);
+const VALID_COUNTRIES: Record<string, Set<string>> = {
+  meli:      new Set(['AR', 'MX', 'BR', 'CO', 'CL', 'UY']),
+  walmart:   new Set(['US', 'MX']),
+  tiendamia: new Set(['AR']),
+};
 
 export async function POST(request: Request) {
-  let body: { query?: unknown; country?: unknown; page?: unknown };
+  let body: { query?: unknown; country?: unknown; page?: unknown; marketplace?: unknown };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: 'Cuerpo de solicitud inválido' }, { status: 400 });
   }
 
-  const query = String(body.query ?? '').trim();
-  const country = String(body.country ?? 'AR').toUpperCase();
-  const page = Math.max(1, Number(body.page ?? 1));
+  const query      = String(body.query ?? '').trim();
+  const country    = String(body.country ?? 'AR').toUpperCase();
+  const page       = Math.max(1, Number(body.page ?? 1));
+  const marketplace = String(body.marketplace ?? 'meli').toLowerCase();
 
   if (!query) {
     return Response.json({ error: 'Se requiere un término de búsqueda' }, { status: 400 });
   }
-  if (!VALID_COUNTRIES.has(country)) {
-    return Response.json({ error: 'Código de país inválido' }, { status: 400 });
+  if (!VALID_COUNTRIES[marketplace]) {
+    return Response.json({ error: 'Marketplace inválido' }, { status: 400 });
+  }
+  if (!VALID_COUNTRIES[marketplace].has(country)) {
+    return Response.json({ error: `Código de país inválido para ${marketplace}` }, { status: 400 });
   }
 
-  const scriptPath = path.join(process.cwd(), 'scraper', 'src', 'query.js');
+  const scriptFile =
+    marketplace === 'walmart'   ? 'walmart-query.js'   :
+    marketplace === 'tiendamia' ? 'tiendamia-query.js' :
+    'query.js';
+  const scriptPath = path.join(process.cwd(), 'scraper', 'src', scriptFile);
+
+  // Tiendamia takes only <searchTerm>; others take <searchTerm> <country> <page>
+  const scraperArgs = marketplace === 'tiendamia'
+    ? [query]
+    : [query, country, String(page)];
 
   try {
-    const products = await runScraper(scriptPath, query, country, page);
-    // Only compute stats on first page — they anchor the MarketSummary card
+    const products = await runScraper(scriptPath, scraperArgs);
     const stats = page === 1 ? computeStats(products) : undefined;
-    return Response.json({ products, page, hasMore: products.length === 50, stats });
+    const hasMore =
+      marketplace === 'walmart'   ? products.length >= 40 :
+      marketplace === 'tiendamia' ? false :
+      products.length === 50;
+    return Response.json({ products, page, hasMore, stats });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error en el scraper';
     return Response.json({ error: message }, { status: 500 });
@@ -76,12 +96,10 @@ function computeStats(products: Product[]): MarketStats {
 
 function runScraper(
   scriptPath: string,
-  query: string,
-  country: string,
-  page: number,
+  args: string[],
 ): Promise<Product[]> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [scriptPath, query, country, String(page)]);
+    const child = spawn(process.execPath, [scriptPath, ...args]);
     let stdout = '';
     let stderr = '';
 
