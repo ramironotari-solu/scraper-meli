@@ -26,4 +26,10 @@ export type Product = {
   isAd: boolean;
   thumbnail: string | null;
   shippingText?: string | null;
+  /** MeLi: 'new' | 'used' | 'refurbished' | 'open_box' | 'unknown' */
+  condition?: string;
+  /** true for anything that is not new (used, refurbished, open box) */
+  isUsed?: boolean;
+  /** cross-border listing (MeLi "Internacional") */
+  isInternational?: boolean;
 };

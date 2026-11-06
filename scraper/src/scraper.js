@@ -68,36 +68,51 @@ function extractProducts() {
     );
     const originalPriceRaw = originalEl?.textContent?.trim() || null;
 
-    // ── Discount label ──
+    // ── Discount label ("5% OFF") ──
     const discountEl =
-      item.querySelector('.andes-money-amount__discount') ||
-      item.querySelector('.poly-price__discount')         ||
+      item.querySelector('[class*="poly-price__discount"]') ||
+      item.querySelector('.andes-money-amount__discount')   ||
       item.querySelector('.ui-search-price__discount');
     const discountText = discountEl?.textContent?.trim() || null;
 
     // ── Rating ──
+    // Compact poly layout: first .polylabel-label inside the review block is the rating ("4.8"),
+    // the second one is the sold count ("| +50 vendidos"). It shows no review count.
     const ratingEl =
+      item.querySelector('.poly-component__review-compacted .polylabel-label') ||
       item.querySelector('.poly-reviews__rating') ||
       item.querySelector('.ui-search-reviews__rating-number');
-    const rating = ratingEl ? parseFloat(ratingEl.textContent.trim()) : null;
+    const ratingNum = ratingEl ? parseFloat(ratingEl.textContent.trim().replace(',', '.')) : NaN;
+    const rating = Number.isFinite(ratingNum) ? ratingNum : null;
 
-    // ── Review count ──
+    // ── Review count (legacy layouts only) ──
     const reviewEl =
       item.querySelector('.poly-reviews__total') ||
       item.querySelector('.ui-search-reviews__amount');
     const reviewText = reviewEl?.textContent?.replace(/[()]/g, '').trim() || null;
-    const reviewCount = reviewText ? parseInt(reviewText, 10) : null;
+    const reviewCount = reviewText ? parseInt(reviewText, 10) || null : null;
 
     // ── Shipping ──
+    // Covers .poly-component__shipping and .poly-component__shipping-v2.
+    // FULL is an icon with aria-label "Enviado por FULL" — it has no visible text.
     const shippingEl =
-      item.querySelector('.poly-component__shipping') ||
+      item.querySelector('[class*="poly-component__shipping"]') ||
       item.querySelector('.ui-search-item__shipping');
     const shippingText = shippingEl?.textContent?.trim()?.toLowerCase() || '';
     const hasFreeShipping = shippingText.includes('gratis') || shippingText.includes('free');
     const hasFull =
       shippingText.includes('full') ||
+      !!shippingEl?.querySelector('[aria-label*="FULL"]') ||
       !!item.querySelector('.poly-shipping__tags--full') ||
       !!item.querySelector('[class*="fulfillment"]');
+
+    // ── Condition ──
+    // New items have no label; otherwise "Usado", "Reacondicionado", "Caja abierta".
+    const conditionText =
+      item.querySelector('.poly-component__item-condition')?.textContent?.trim() || null;
+
+    // ── International (cross-border, e.g. "Internacional USA") ──
+    const isInternational = !!item.querySelector('[class*="__cbt"]');
 
     // ── Seller ──
     const sellerEl =
@@ -108,6 +123,7 @@ function extractProducts() {
 
     // ── Ad / sponsored ──
     const adEl =
+      item.querySelector('.poly-component__ads-promotions') ||   // label "Ad"
       item.querySelector('.poly-component__highlight')   ||
       item.querySelector('[class*="promoted"]')          ||
       item.querySelector('[class*="sponsored"]')         ||
@@ -129,9 +145,21 @@ function extractProducts() {
       priceRaw, priceCents, originalPriceRaw, discountText,
       rating, reviewCount,
       hasFull, hasFreeShipping,
+      conditionText, isInternational,
       seller, isAd, thumbnail,
     };
   });
+}
+
+// "Usado" → used, "Reacondicionado" → refurbished, "Caja abierta" → open_box, no label → new.
+// Any other label still counts as not-new so it never slips into new-item price comparisons.
+function normalizeCondition(text) {
+  if (!text) return 'new';
+  const t = text.toLowerCase();
+  if (t.includes('recond') || t.includes('reacond')) return 'refurbished';
+  if (t.includes('caja abierta') || t.includes('caixa aberta')) return 'open_box';
+  if (t.includes('usad')) return 'used';
+  return 'unknown';
 }
 
 // ── Single attempt ─────────────────────────────────────────────────────────
@@ -176,7 +204,14 @@ async function attempt(url, locale, attemptNum) {
     // Detect bot-block / verification page (check title AND body)
     const pageTitle   = await page.title();
     const bodySnippet = await page.evaluate(() => document.body?.innerText?.slice(0, 500) || '');
+    // Login wall ("Para continuar, ingresa a tu cuenta"): served by MeLi's suspicious-traffic
+    // frontend under a neutral title, so the text checks below miss it.
+    const isLoginWall =
+      /account-verification|suspicious-traffic/.test(page.url()) ||
+      await page.evaluate(() =>
+        !!document.querySelector('link[href*="suspicious-traffic"], script[src*="suspicious-traffic"]'));
     const isBlocked   =
+      isLoginWall ||
       pageTitle.toLowerCase().includes('verificacion')  ||
       pageTitle.toLowerCase().includes('verification')  ||
       pageTitle.toLowerCase().includes('suspicious')    ||
@@ -238,6 +273,7 @@ async function scrape(searchTerm, countryCode = 'AR', page = 1) {
       const products = raw.map((p) => {
         const price         = parsePrice(p.priceRaw);
         const originalPrice = parsePrice(p.originalPriceRaw);
+        const condition     = normalizeCondition(p.conditionText);
 
         let discountPct = null;
         if (p.discountText) {
@@ -260,12 +296,17 @@ async function scrape(searchTerm, countryCode = 'AR', page = 1) {
           hasFreeShipping: p.hasFreeShipping,
           isAd:            p.isAd,
           thumbnail:       p.thumbnail,
+          condition,
+          isUsed:          condition !== 'new',
+          isInternational: p.isInternational,
         };
       });
 
       console.log(`✅ ${products.length} productos obtenidos.`);
       console.log(`   - ${products.filter((p) => p.isAd).length} son anuncios`);
-      console.log(`   - ${products.filter((p) => p.hasFull).length} tienen envío FULL\n`);
+      console.log(`   - ${products.filter((p) => p.hasFull).length} tienen envío FULL`);
+      console.log(`   - ${products.filter((p) => p.isUsed).length} usados/reacondicionados/caja abierta`);
+      console.log(`   - ${products.filter((p) => p.isInternational).length} internacionales\n`);
 
       return products;
 
