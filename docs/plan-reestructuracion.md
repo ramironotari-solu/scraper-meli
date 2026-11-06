@@ -271,16 +271,24 @@ Con esto, el "historial de búsquedas" que estaba pendiente sale casi gratis. Ta
 
 Cada fase termina con la app funcionando y mergeada a `main`. Los tamaños son orientativos (S ≈ 1 día, M ≈ 2-4 días, L ≈ 1 semana).
 
-### Fase 0: Asegurar lo existente · S · **hacer ya**
+### Fase 0: Asegurar lo existente · S · ✅ **hecha (2026-11-06, rama `chore/fase-0`)**
 
 **Objetivo:** no perder trabajo y dejar de producir datos incorrectos.
 
-- [ ] Commitear el working tree en commits por tema (Walmart, Tiendamia, scripts de Excel, Docker, anti-bot de MeLi, migración a exceljs).
-- [ ] **Corregir C1**: que el scraper de MeLi detecte `isUsed` (texto "Usado" en el card) e `isInternational` (badge de compra internacional). Volver a correr las filas afectadas del Excel si hace falta.
-- [ ] Corregir C3: agregar `.env*` a `.dockerignore`. Si alguna imagen se subió a un registry, **rotar las claves**.
-- [ ] Corregir M10: agregar `!.env.example` en `.gitignore` y versionar la plantilla, más un `.env.example` en la raíz con `ANTHROPIC_API_KEY`.
-- [ ] Corregir M1 y M2 (son de una línea cada uno).
-- [ ] Crear una rama de trabajo para la reestructuración (`refactor/monorepo`).
+- [x] Commitear el working tree en commits por tema (Walmart, Tiendamia, scripts de Excel, Docker, anti-bot de MeLi, migración a exceljs).
+- [x] **Corregir C1**: el scraper de MeLi ahora devuelve `condition`, `isUsed` e `isInternational`. Se verificó contra páginas reales de MeLi AR.
+- [x] Corregir C3: `.env*`, `**/.env*` y `scraper/proxies.txt` agregados a `.dockerignore`.
+- [x] Corregir M10: `!.env.example` en `.gitignore`, `.env.example` nuevo en la raíz y `scraper/.env.example` actualizado al flujo `client_credentials`.
+- [x] Corregir M1 y M2.
+- [ ] Mergear `chore/fase-0` a `main`, subirla a GitHub y crear `refactor/monorepo` desde `main`. *(Pendiente de confirmación.)*
+- [ ] Volver a correr las filas del Excel cargadas antes de este fix. *(Bloqueado: ver "Hallazgos" más abajo.)*
+- [ ] Si alguna imagen Docker se subió a un registry, **rotar las claves**. *(Pendiente de confirmación.)*
+
+**Hallazgos de la fase 0:**
+
+- **Los selectores de MeLi habían quedado desactualizados.** Además de C1, el extractor devolvía 0 en rating (0 de 59), envío gratis (0 de 55), FULL (0 de 20) y anuncios (0 de 16), porque MeLi migró a `poly-component__shipping-v2`, `review-compacted` y `ads-promotions`. Por eso el resumen de mercado de MeLi mostraba "0% envío gratis" y se lo pasaba así a la IA. Ya está corregido. **Esto es justamente lo que tienen que detectar los tests con fixtures de la fase 2.**
+- **MeLi bloquea el scraping desde la IP actual** con un muro de login ("Para continuar, ingresa a tu cuenta") que se sirve desde su frontend `suspicious-traffic`. Desde un Chrome normal la misma búsqueda carga bien. Antes, el scraper lo reportaba como "sin resultados"; ahora lo reporta como `BLOCKED`. **Sin proxies, hoy no se puede scrapear MeLi desde esta máquina**, así que la decisión abierta n.º 2 (proxies) pasa a ser prioritaria.
+- En la búsqueda "iphone 13", **43 de los 48 resultados son reacondicionados**. Los precios mínimos cargados antes de este fix pueden estar muy por debajo del precio de un equipo nuevo.
 
 **Listo cuando:** `git status` está limpio, el Excel no toma usados ni internacionales y la imagen Docker no contiene secretos.
 
@@ -381,7 +389,7 @@ Cada fase termina con la app funcionando y mergeada a `main`. Los tamaños son o
 ## 6. Decisiones abiertas (a definir con el equipo)
 
 1. **¿Dónde se va a desplegar y quién lo usa?** ¿Solo el equipo interno? ¿Cuántas personas? Esto define la autenticación y la infraestructura (VPS, Railway, Render, Fly…). Vercel sirve para la web, pero no para el worker.
-2. **¿Hay presupuesto para proxies residenciales?** Es lo que más impacta en la tasa de éxito con MeLi.
+2. **¿Hay presupuesto para proxies residenciales?** Es lo que más impacta en la tasa de éxito con MeLi. **Pasó a ser urgente:** desde 2026-11-06 MeLi bloquea la IP actual con un muro de login (ver los hallazgos de la fase 0).
 3. **¿Los jobs de Excel van a la web (fase 5) o alcanza con dejarlos como CLI?** Si se usan seguido, conviene la web.
 4. **¿Qué significa "Cliente nuevo / actual"?** ¿Es un metadato de la búsqueda, o tendría que cambiar algo del análisis?
 5. **¿Hace falta seguimiento de precios en el tiempo** (re-scrapear un producto todos los días)? Si la respuesta es sí, el modelo de datos de la fase 3 ya lo deja preparado con jobs programados de pg-boss.
