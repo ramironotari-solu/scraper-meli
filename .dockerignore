@@ -1,0 +1,6 @@
+node_modules
+scraper/node_modules
+scraper/data
+.next
+.git
+*.md
